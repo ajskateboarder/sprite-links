@@ -1,0 +1,15 @@
+#!/bin/bash
+
+copy-script() {
+    cp userscript.js ~/.config/turbowarp-desktop/userscript.js
+    echo "Updated"
+}
+
+turbowarp() {
+    /opt/TurboWarp/turbowarp-desktop $1 >/dev/null 2>&1
+}
+
+if [ "$0" = "$BASH_SOURCE" ]; then
+    copy-script
+    turbowarp Project.sb3
+fi
