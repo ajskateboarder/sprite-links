@@ -123,8 +123,9 @@ let comments = setInterval(() => {
   if (elems.length === 0) return;
   elems.forEach((e, i) => {
     // comment contains [Spritename-scriptid]
-    let match = e.querySelector("text").textContent.match(/\[(.*)-(.*)\]/g);
-    let linkedContent = e.querySelector("text").textContent;
+    let match = e.querySelector("textarea").value.match(/\[(.*)-(.*)\]/g);
+    let linkedContent = e.querySelector("textarea").value;
+    console.log(linkedContent);
     if (match !== null) {
       match.forEach(
         (e) =>
@@ -134,7 +135,7 @@ let comments = setInterval(() => {
           ))
       );
       let textarea = e.querySelector("textarea");
-      console.log("Wubfsubadf");
+      console.log(linkedContent);
       textarea.outerHTML = textarea.outerHTML
         .replaceAll("textarea", "div")
         .replace(
@@ -164,10 +165,15 @@ function getEventListeners(element) {
   return eventListeners;
 }
 
-/** @param {Event} event */
+/**
+ * Converts a comment div to a textarea to edit
+ *
+ * Used in event handling logic
+ * @param {Event} event */
 function convertTextarea(event) {
   const originalElement = event.target;
   const clonedElement = originalElement.cloneNode(true);
+
   /** @type {HTMLTextAreaElement} */
   const newElement = document.createElement("textarea");
   for (const attribute of clonedElement.attributes) {
@@ -188,23 +194,52 @@ function convertTextarea(event) {
   newElement.setAttribute("onblur", "convertFormatted(event)");
   newElement.focus();
   newElement.onkeyup = () => {
-    newElement.parentElement.parentElement.parentElement.querySelector(
-      "text"
-    ).innerHTML = newElement.value;
+    let parent = newElement.parentElement.parentElement.parentElement;
+    if (parent.querySelector("span") === null) {
+      let contents = document.createElement("span");
+      contents.style.display = "hidden";
+      contents.appendChild(document.createTextNode(newElement.value));
+      parent.appendChild(contents);
+    } else {
+      parent.querySelector("span").innerText = newElement.value;
+    }
   };
 }
 
-/** @param {Event} event */
+/**
+ * Converts a comment textarea to a div to format sprite links
+ *
+ * Used in event handling logic
+ * @param {Event} event */
 function convertFormatted(event) {
+  let workspace = Blockly.getMainWorkspace();
+  /** @type {HTMLElement} */
   const originalElement = event.target;
-  console.log(originalElement.innerHTML);
+  console.log(originalElement.parentElement.parentElement.parentElement);
+  let content =
+    originalElement.parentElement.parentElement.parentElement.querySelector(
+      "span"
+    ).innerText;
+
+  let transform =
+    originalElement.parentElement.parentElement.parentElement.attributes
+      .transform.value;
+  let comments = Array.from(
+    originalElement.parentElement.parentElement.parentElement.parentElement.querySelectorAll(
+      "g.blocklyDraggable"
+    )
+  );
+  let commentChangedId = comments.indexOf(
+    comments.filter((e) => e.attributes.transform.value === transform)[0]
+  );
   const clonedElement = originalElement.cloneNode(true);
   const newElement = document.createElement("div");
+
   for (const attribute of clonedElement.attributes) {
     newElement.setAttribute(attribute.name, attribute.value);
   }
 
-  newElement.innerHTML = clonedElement.innerText;
+  newElement.innerHTML = clonedElement.innerHTML;
   originalElement.parentNode.replaceChild(newElement, originalElement);
   const originalListeners = getEventListeners(originalElement);
 
@@ -215,10 +250,10 @@ function convertFormatted(event) {
   }
   clonedElement.remove();
   newElement.removeAttribute("onblur");
-  let content =
-    newElement.parentElement.parentElement.parentElement.querySelector(
-      "text"
-    ).innerHTML;
+  workspace
+    .getCommentById(Object.keys(workspace.commentDB_)[commentChangedId])
+    .setText(content);
+
   let match = content.match(/\[(.*)-(.*)\]/g);
   if (match !== null) {
     match.forEach(
