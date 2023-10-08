@@ -121,6 +121,8 @@ let comments = setInterval(() => {
     return;
   }
   if (elems.length === 0) return;
+  let commentIDs = Blockly.getMainWorkspace().topBlocks_.map((e) => e.id);
+
   elems.forEach((e, i) => {
     // comment contains [Spritename-scriptid]
     let match = e.querySelector("textarea").value.match(/\[(.*)-(.*)\]/g);
@@ -131,7 +133,7 @@ let comments = setInterval(() => {
         (e) =>
           (linkedContent = linkedContent.replace(
             e,
-            `<a href="https://google.com" contenteditable="false">${e}</a>`
+            `<a href="#" onclick="scrollBlockIntoView('${commentIDs[i]}')" contenteditable="false">${e}</a>`
           ))
       );
       let textarea = e.querySelector("textarea");
@@ -250,20 +252,29 @@ function convertFormatted(event) {
   }
   clonedElement.remove();
   newElement.removeAttribute("onblur");
-  workspace
-    .getCommentById(Object.keys(workspace.commentDB_)[commentChangedId])
-    .setText(content);
+  let commentIDs = Blockly.getMainWorkspace().topBlocks_.map((e) => e.id);
 
-  let match = content.match(/\[(.*)-(.*)\]/g);
+  try {
+    workspace.getCommentById(commentIDs[commentChangedId]).setText(content);
+  } catch (e) {
+    // TODO: remove this, idk
+    // console.error(e);
+    console.log(commentIDs);
+  }
+
+  let match = content.match(/\[(.*?)\-(.*?)\]/g);
   if (match !== null) {
     match.forEach(
       (e) =>
         (content = content.replace(
           e,
-          `<a href="https://google.com" contenteditable="false">${e}</a>`
+          `<a href="#" onclick="scrollBlockIntoView('${e
+            .split("-")[1]
+            .slice(0, -1)}')" contenteditable="false">${e}</a>`
         ))
     );
   }
+  console.log(content);
   newElement.innerHTML = content;
   newElement.setAttribute("onfocus", "convertTextarea(event)");
   newElement.blur();
